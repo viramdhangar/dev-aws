@@ -22,6 +22,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.viram.dev.dto.DAOUser;
 import com.viram.dev.dto.InitiatePaymentDTO;
 import com.viram.dev.dto.Order;
 import com.viram.dev.dto.PaymentResponse;
@@ -65,31 +66,6 @@ public class InitiatePaymentService {
 	    return new RestTemplate();
 	}
 	
-	/*
-	 * public String getTokenWithOk(InitiatePaymentDTO paymentDTO, SecretDTO secret,
-	 * Order savedOrder) throws IOException {
-	 * 
-	 * final MediaType JSON = MediaType.get("application/json; charset=utf-8");
-	 * 
-	 * ObjectMapper obj = new ObjectMapper(); String json =
-	 * obj.writeValueAsString(savedOrder);
-	 * 
-	 * OkHttpClient client = new OkHttpClient.Builder() .build();
-	 * 
-	 * RequestBody body = RequestBody.create(JSON, json);
-	 * 
-	 * Request request = new Request.Builder()
-	 * .url("https://test.cashfree.com/api/v2/cftoken/order")
-	 * .addHeader("Content-Type", "application/json") .addHeader("x-client-id",
-	 * secret.getIdType()) .addHeader("x-client-secret", secret.getIdValue())
-	 * .post(body) .build();
-	 * 
-	 * Call call = client.newCall(request); Response response = call.execute();
-	 * System.out.println(response.body().string()); return
-	 * response.body().string();
-	 * 
-	 * }
-	 */
 	public Token getToken(SecretDTO secret, TokenOrder order) throws IOException {
 		HttpHeaders headers = new HttpHeaders();
 		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
@@ -111,7 +87,7 @@ public class InitiatePaymentService {
 		Order order = new Order();
 		Order savedOrder = orderRepo.save(order);
 		TokenOrder to = new TokenOrder(); 
-		to.setOrderId(String.valueOf(savedOrder.getId()));
+		to.setOrderId(String.valueOf("DEV"+savedOrder.getId())+String.valueOf(Math.random()).substring(2,3));
 		to.setOrderAmount(Integer.parseInt(paymentDTO.getOrderAmount()));
 		to.setOrderCurrency("INR");
 		
@@ -124,9 +100,6 @@ public class InitiatePaymentService {
 		paymentDTO.setOrderAmount(String.valueOf(to.getOrderAmount()));
 		paymentDTO.setOrderId(to.getOrderId());
 		paymentDTO.setOrderNote("Payment to dev");
-		paymentDTO.setCustomerName("Payment to dev");
-		paymentDTO.setCustomerEmail("viram.dhangar@gmail.com");
-		paymentDTO.setCustomerPhone("8097547286");
 		paymentDTO.setStage(secret.getSecretDesc());
 		initiatePaymentRepo.save(paymentDTO);
 		
@@ -135,17 +108,11 @@ public class InitiatePaymentService {
 		return paymentDTO;
 	}
 	
-	/*
-	 * public SecretDTO getSecret(String type) { SecretDTO conf =
-	 * configRepo.findByType(type); if(conf.isPresent()) { return conf.get(); }
-	 * return new SecretDTO(); }
-	 */
-	
-	public PaymentResponse savePaymentAudit(Map<String, String> map) {
-		return paymentResponseRepo.save(convertToObject(map));
+	public PaymentResponse savePaymentAudit(Map<String, String> map, DAOUser user) {
+		return paymentResponseRepo.save(convertToObject(map, user));
 	}
 	
-	private PaymentResponse convertToObject(Map<String, String> map) {
+	private PaymentResponse convertToObject(Map<String, String> map, DAOUser user) {
 		PaymentResponse paymentResponse = new PaymentResponse();
 		paymentResponse.setOrderId(map.get("orderId"));
 		paymentResponse.setOrderAmount(map.get("orderAmount"));
@@ -156,6 +123,7 @@ public class InitiatePaymentService {
 		paymentResponse.setTxStatus(map.get("txStatus"));
 		paymentResponse.setTxTime(map.get("txTime"));
 		paymentResponse.setType(map.get("type"));
+		paymentResponse.setUser(user);
 		return paymentResponse;
 	}
 	public void verifySignature() throws NoSuchAlgorithmException, InvalidKeyException {
@@ -164,13 +132,6 @@ public class InitiatePaymentService {
 		SecretDTO secret = secretRepo.findByType(Constants.SECRET);
 		
 		LinkedHashMap<String, String> postData = new LinkedHashMap<String, String>();
-
-		/*
-		 * postData.put("orderId", ORDERID); postData.put("orderAmount", ORDERAMOUNT);
-		 * postData.put("referenceId", REFERENCE_ID); postData.put("txStatus",
-		 * TXN_STATUS); postData.put("paymentMode", PAYMENT_MODE); postData.put("txMsg",
-		 * TX_MSG); postData.put("txTime", TX_TIME);
-		 */
 
 		String data = "";
 		Set<String> keys = postData.keySet();

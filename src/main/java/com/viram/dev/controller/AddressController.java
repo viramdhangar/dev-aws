@@ -26,7 +26,7 @@ public class AddressController {
 	private AddressRepository addressRepository;
 
 	@GetMapping("/addressesByUser/{userId}")
-	public Iterable<Address> addresses(@PathVariable Long userId) {
+	public Address addresses(@PathVariable Long userId) {
 		return addressRepository.findByUserId(userId);
 	}
 	

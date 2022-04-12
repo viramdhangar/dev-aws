@@ -4,12 +4,14 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
 
 import com.viram.dev.dto.Address;
@@ -56,36 +58,50 @@ public class MatrimonyRegistrationService {
 	@Autowired
 	private AboutDetailsRepository aboutDetailsRepository;
 	
-	public List<MatrimonyRegistration> myMatProfile(Long userId) {
+	@Cacheable(value = "myMatProfile", key = "#userId")
+	public MatrimonyRegistration myMatProfile(Long userId) {
+		BasicDetails profile = basicDetailsRepository.findByUserId(userId);
+		MatrimonyRegistration mr = new MatrimonyRegistration(profile, personalDetailsRepository.findByBasicDetail(profile)
+				, religionDetailsRepository.findByBasicDetail(profile)
+				, professionalDetailsRepository.findByBasicDetail(profile)
+				, aboutDetailsRepository.findByBasicDetail(profile)
+				, null, null);
+		return mr;
+	}
+	
+	@Cacheable(value = "allMatProfile")
+	public List<MatrimonyRegistration> allMatProfile(int offset, int limit) {
 		List<MatrimonyRegistration> mr = new ArrayList<>();
-		List<BasicDetails> profile = basicDetailsRepository.findAllByUserId(userId);
+		List<BasicDetails> profile = new ArrayList<>();
+		profile = allProfiles(offset, limit);
 		mr = profile.stream()
 				.map(m -> new MatrimonyRegistration(m, personalDetailsRepository.findByBasicDetail(m)
 						, religionDetailsRepository.findByBasicDetail(m)
 						, professionalDetailsRepository.findByBasicDetail(m)
 						, aboutDetailsRepository.findByBasicDetail(m)
-						, getImages(m)))
+						, null, null))
 				.collect(Collectors.toList());
 		return mr;
 	}
 	
-	
-	public List<BasicDetails> allProfiles(int offset, int limit){
-		return basicDetailsRepository.findAllProfileByLimit(offset, limit);
+	@Cacheable(value = "profileDetails", key = "#profileId")
+	public MatrimonyRegistration profileDetails(Long profileId) {
+		BasicDetails basicDetails = new BasicDetails();
+		Optional<BasicDetails> profile = basicDetailsRepository.findById(profileId);
+		if (profile.isPresent()) {
+			basicDetails = profile.get();
+		}
+
+		MatrimonyRegistration mr = new MatrimonyRegistration(basicDetails,
+				personalDetailsRepository.findByBasicDetail(basicDetails),
+				religionDetailsRepository.findByBasicDetail(basicDetails),
+				professionalDetailsRepository.findByBasicDetail(basicDetails),
+				aboutDetailsRepository.findByBasicDetail(basicDetails), null, null);
+		return mr;
 	}
 	
-	private List<MatImageModel> getImages(BasicDetails basicDetails) {
-		List<MatImageModel> allImagesOfProfile = matImageRepository.findAllByBasicDetail(basicDetails);
-		allImagesOfProfile.forEach(img->{
-			try {
-				String decodedString = new String(decompressBytes(img.getPicByte()));
-				img.setDecodedBase64(decodedString);
-				img.setPicByte(decompressBytes(img.getPicByte()));
-			}catch(Exception e) {
-				System.out.println("image currupted");
-			}
-		});
-		return allImagesOfProfile;
+	private List<BasicDetails> allProfiles(int offset, int limit){
+		return basicDetailsRepository.findAllProfileByLimit(offset, limit);
 	}
 
 	// uncompress the image bytes before returning it to the angular application

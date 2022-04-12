@@ -1,5 +1,6 @@
 package com.viram.dev.dto.mat;
 
+import java.io.Serializable;
 import java.util.Date;
 import java.util.List;
 
@@ -27,8 +28,12 @@ import lombok.NoArgsConstructor;
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor
-public class BasicDetails {
+public class BasicDetails implements Serializable{
 
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 	@Id
 	@GeneratedValue(strategy = GenerationType.AUTO)
 	private Long id;

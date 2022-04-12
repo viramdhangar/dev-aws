@@ -11,7 +11,7 @@
 	</parent>
 	<groupId>com.docker</groupId>
 	<artifactId>spring-docker-d</artifactId>
-	<version>0.0.5-SNAPSHOT</version>
+	<version>0.0.6-SNAPSHOT</version>
 	<name>spring-docker-d</name>
 	<description>Demo project for Spring Boot</description>
 	<properties>
@@ -68,6 +68,17 @@
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
 		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-cache</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.hazelcast</groupId>
+			<artifactId>hazelcast-all</artifactId>
+			<version>4.0.2</version>
+		</dependency>
+
 	</dependencies>
 
 	<build>

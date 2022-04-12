@@ -9,7 +9,9 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.Lob;
 import javax.persistence.PrePersist;
+import javax.persistence.PreUpdate;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 
@@ -39,14 +41,33 @@ public class DAOUser implements Serializable{
 	private String lastName;
 	private String pinCode;
 	private Date created;
+	private String loginMethod;
 	private String changePassword;
+	private String imageUrl;
+	private Date updated;
 	@Transient
 	private List<Authorities> authorities;
 
+	@Transient
+	private String decodedBase64;
+	@Column(name = "name")
+	private String name;
+	@Column(name = "type")
+	private String type;
+    //image bytes can have large lengths so we specify a value
+    //which is more than the default length for picByte column
+	@Lob
+	@Column(name = "picByte", length=1000)
+	private byte[] picByte;
 
 	@PrePersist
 	protected void onCreate() {
 		created = new Date();
+	}
+	
+	@PreUpdate
+	protected void onUpdate() {
+		updated = new Date();
 	}
 
 }

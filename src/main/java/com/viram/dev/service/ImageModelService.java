@@ -18,7 +18,7 @@ public class ImageModelService{
 	@Autowired
 	private BasicDetailsRepository basicDetailsRepository;
 	
-	@Cacheable(value = "imageModelCache", key = "#profileId")
+	@Cacheable(value = "matImage", key = "#profileId")
     public Optional<Object> getImages(Long profileId) {
 		return basicDetailsRepository.findById(profileId).map(profile->{
 			 System.out.println("Retrieving from Database for profileId: " + profileId);

@@ -62,7 +62,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 		httpSecurity.cors().and().csrf().disable()
 				// dont authenticate this particular request
 				.authorizeRequests().antMatchers("/initiate-payment").permitAll()//hasAnyRole("ADMIN")
-				.antMatchers("/matImage/{profileId}", "/matrimony-profiles", "/profile", "/addressesByUser/*","/addressById/*", "/address/*", "/basic-detail/*", "/personal-detail/*", "/religion-detail/*", "/professional-detail/*", "/about-detail/*", "/my-metrimony-profile/*", "/matrimony-registration", "/user","/userById/*", "/userByUsername/*","/resetPassword", "/changePassword", "/authenticate","/login", "/welcome", "/initiate-payment", "/payment-response").permitAll().
+				.antMatchers("/like", "/like/*", "/comment/*", "/delete/like/*", "/comment", "/delete/comment/*" ,"/post/*", "/post/*/*", "/membership/*/*", "/matImage/{profileId}", "/profile", "/addressesByUser/*","/addressById/*", "/address/*", "/basic-detail/*", "/personal-detail/*/*", "/religion-detail/*/*", "/professional-detail/*/*", "/about-detail/*/*", "/my-metrimony-profile/*", "/all-profile/*/*", "/membership/*", "/profile/detail/*", "/matrimony-registration", "/user","/userById/*", "/userByUsername/*","/resetPassword", "/changePassword", "/authenticate","/login", "/welcome", "/initiate-payment", "/payment-response/*").permitAll().
 				// all other requests need to be authenticated
 				anyRequest().authenticated().and().
 				// make sure we use stateless session; session won't be used to

@@ -11,6 +11,12 @@ import java.util.zip.Deflater;
 import java.util.zip.Inflater;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -68,57 +74,114 @@ public class MatrimonyControllor {
 	@Autowired
 	private AboutDetailsRepository aboutDetailsRepository;
 	
+	@Autowired
+	private MatImageRepository matImageRepository;
+	
+	
+    @Autowired 
+    private CacheManager cacheManager;               // autowire cache manager
+    //@Scheduled(cron = "0 0/30 * * * ?")              // execure after every 30 min
+    @GetMapping("/clear-cache")
+    public void clearCacheSchedule(){
+        for(String name:cacheManager.getCacheNames()){
+            cacheManager.getCache(name).clear();            // clear cache by name
+        }
+    }
+    
 	@GetMapping("/my-metrimony-profile/{userId}")
-	public List<MatrimonyRegistration> getMatrimonyProfile(@Validated @PathVariable Long userId) {
+	public MatrimonyRegistration getMyMatrimonyProfile(@Validated 
+			@PathVariable(name="userId", required = false) Long userId) {
 		return service.myMatProfile(userId);
 	}
 	
-	@GetMapping("/matrimony-profiles")
-	public List<BasicDetails> getAllMatrimonyProfile(@RequestParam int offset, @RequestParam int limit) {
-		return service.allProfiles(offset, limit);
+	@GetMapping("/all-profile/{offset}/{limit}")
+	public List<MatrimonyRegistration> getAllProfile(@Validated
+			@PathVariable(name="offset", required = false) int offset, 
+			@PathVariable(name="limit", required = false) int limit) {
+		return service.allMatProfile(offset, limit);
+	}
+	
+	@GetMapping("/profile/detail/{profileId}")
+	public MatrimonyRegistration getMatrimonyProfile(@Validated @PathVariable Long profileId) {
+		return service.profileDetails(profileId);
 	}
 	
 	@PostMapping("/basic-detail/{userId}")
-	public Optional<Object> saveBasicDetails(@Validated @RequestBody BasicDetails basicDetails, @PathVariable Long userId) {
+	@Caching(evict = { @CacheEvict(value = "myMatProfile", key = "#userId"),
+			@CacheEvict(value = "profileDetails", key = "#basicDetails.id"),
+			@CacheEvict(cacheNames = {"allMatProfile"} , allEntries = true)
+	})
+	public Optional<Object> saveBasicDetails(@Validated @RequestBody BasicDetails basicDetails,
+			@PathVariable Long userId) {
 		return userRepository.findById(userId).map(user -> {
 			basicDetails.setUser(user);
+			clearCacheSchedule();
 			return basicDetailsRepository.save(basicDetails);
-        });
+		});
 	}
 	
-	@PostMapping("/personal-detail/{profileId}")
-	public Optional<Object> savePersonalDetails(@Validated @RequestBody PersonalDetails personalDetails, @PathVariable Long profileId) {
+	@PostMapping("/personal-detail/{profileId}/{userId}")
+	@Caching(evict = {
+		    @CacheEvict(value = "myMatProfile", key = "#userId"),
+		    @CacheEvict(value = "profileDetails", key = "#profileId"),
+		    @CacheEvict(cacheNames = {"allMatProfile"} , allEntries = true)
+		})
+	@CachePut(value = "allMatProfile")
+	public Optional<Object> savePersonalDetails(@Validated @RequestBody PersonalDetails personalDetails, @PathVariable Long profileId, @PathVariable Long userId) {
 		return basicDetailsRepository.findById(profileId).map(profile -> {
 			personalDetails.setBasicDetail(profile);
 			return personalDetailsRepository.save(personalDetails);
         });
 	}
 		
-	@PostMapping("/religion-detail/{profileId}")
-	public Optional<Object> saveReligionDetails(@Validated @RequestBody ReligionDetails religionDetails, @PathVariable Long profileId) {
+	@PostMapping("/religion-detail/{profileId}/{userId}")
+	@Caching(evict = {
+		    @CacheEvict(value = "myMatProfile", key = "#userId"),
+		    @CacheEvict(value = "profileDetails", key = "#profileId"),
+			@CacheEvict(cacheNames = {"allMatProfile"} , allEntries = true)
+		})
+	public Optional<Object> saveReligionDetails(@Validated @RequestBody ReligionDetails religionDetails, @PathVariable Long profileId, @PathVariable Long userId) {
 		return basicDetailsRepository.findById(profileId).map(profile -> {
 			religionDetails.setBasicDetail(profile);
 			return religionDetailsRepository.save(religionDetails);
         });
 	}
 	
-	@PostMapping("/professional-detail/{profileId}")
-	public Optional<Object> saveProfessionalDetails(@Validated @RequestBody ProfessionalDetails professionalDetails, @PathVariable Long profileId) {
+	@PostMapping("/professional-detail/{profileId}/{userId}")
+	@Caching(evict = {
+		    @CacheEvict(value = "myMatProfile", key = "#userId"),
+		    @CacheEvict(value = "profileDetails", key = "#profileId"),
+		    @CacheEvict(cacheNames = {"allMatProfile"} , allEntries = true)
+		})
+	public Optional<Object> saveProfessionalDetails(@Validated @RequestBody ProfessionalDetails professionalDetails, @PathVariable Long profileId, @PathVariable Long userId) {
 		return basicDetailsRepository.findById(profileId).map(profile -> {
 			professionalDetails.setBasicDetail(profile);
 			return professionalDetailsRepository.save(professionalDetails);
         });
 	}
 	
-	@PostMapping("/about-detail/{profileId}")
-	public Optional<Object> saveStatusDetails(@Validated @RequestBody AboutDetails aboutDetails, @PathVariable Long profileId) {
+	
+	@PostMapping("/about-detail/{profileId}/{userId}")
+	@Caching(evict = {
+			@CacheEvict(value = "myMatProfile", key = "#userId"),
+			@CacheEvict(value = "profileDetails", key = "#profileId"),
+			@CacheEvict(cacheNames = {"allMatProfile"} , allEntries = true)
+			})
+	public Optional<Object> saveStatusDetails(@Validated @RequestBody AboutDetails aboutDetails,
+			@PathVariable Long profileId, @PathVariable Long userId) {
 		return basicDetailsRepository.findById(profileId).map(profile -> {
 			aboutDetails.setBasicDetail(profile);
 			return aboutDetailsRepository.save(aboutDetails);
-        });
+		});
 	}
+	 
 	
 	@PostMapping("/matImage/{profileId}")
+	@Caching(evict = {
+		    @CacheEvict(value = "matImage", key = "#profileId"),
+		    @CacheEvict(value = "profileDetails", key = "#profileId"),
+			@CacheEvict(value = "allMatProfile" , allEntries = true)
+		})
 	public Optional<Object> matImage(@RequestBody List<MatImageModel> imageModel, @PathVariable Long profileId) {
 		return basicDetailsRepository.findById(profileId).map(profile -> {
 		List<MatImageModel> imageData = imageModel;

@@ -13,6 +13,7 @@ import com.viram.dev.dto.Authorities;
 import com.viram.dev.dto.DAOUser;
 import com.viram.dev.repository.AuthoritiesRepository;
 import com.viram.dev.repository.UserDao;
+import com.viram.dev.repository.UserRepository;
 
 @Service
 public class JwtUserDetailsService implements UserDetailsService {
@@ -25,6 +26,9 @@ public class JwtUserDetailsService implements UserDetailsService {
 
 	@Autowired
 	private BCryptPasswordEncoder bcryptEncoder;
+	
+	@Autowired
+	UserRepository userRepository;
 
 	@Override
 	public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -37,7 +41,19 @@ public class JwtUserDetailsService implements UserDetailsService {
 	}
 	
 	public DAOUser save(DAOUser user) {
-		user.setPassword(bcryptEncoder.encode(user.getPassword()));
+		if(user.getId()!=null) {	
+			DAOUser daoUser = userRepository.findByUsername(user.getUsername());
+			user.setPassword(daoUser.getPassword());
+			user.setUsername(daoUser.getUsername());
+			user.setEmail(daoUser.getEmail());
+			user.setCreated(daoUser.getCreated());
+			user.setChangePassword(daoUser.getChangePassword());
+			user.setImageUrl(daoUser.getImageUrl());
+		} else {
+			if(user.getLoginMethod() != null && user.getLoginMethod().equalsIgnoreCase("normal")) {
+				user.setPassword(bcryptEncoder.encode(user.getPassword()));
+			}
+		}
 		userDao.save(user);
 		Authorities authorities = new Authorities();
 		authorities.setUsername(user.getUsername());

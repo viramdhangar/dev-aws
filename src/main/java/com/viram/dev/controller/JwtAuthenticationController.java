@@ -1,5 +1,12 @@
 package com.viram.dev.controller;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.Base64;
+import java.util.zip.DataFormatException;
+import java.util.zip.Deflater;
+import java.util.zip.Inflater;
+
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -58,10 +65,23 @@ public class JwtAuthenticationController {
 	
 	@RequestMapping(value = "/user", method = RequestMethod.POST)
 	public ResponseEntity<?> saveUser(@RequestBody DAOUser user) throws Exception {
-		if(user.getId()!=null) {
-			return ResponseEntity.ok(userRepository.update(user));	
+		
+		if(user.getDecodedBase64() != null) {
+			String[] str1 = user.getDecodedBase64().split(",");
+			String contentType = str1[0].replace(";base64", "").replace("data:", "");
+			String encodedString = Base64.getEncoder().encodeToString(user.getDecodedBase64().getBytes());
+			byte[] decodedBytes = Base64.getDecoder().decode(encodedString);				
+			user.setName("base64");
+			user.setType(contentType);
+			user.setPicByte(compressBytes(decodedBytes));
 		}
-		return ResponseEntity.ok(userDetailsService.save(user));
+		DAOUser savedUser = userDetailsService.save(user);
+		if(savedUser.getPicByte() != null) {
+			String decodedString = new String(decompressBytes(savedUser.getPicByte()));
+			savedUser.setDecodedBase64(decodedString);
+			savedUser.setPicByte(null);
+		}
+		return ResponseEntity.ok(savedUser);
 	}
 
 	private void authenticate(String username, String password) throws Exception {
@@ -72,5 +92,44 @@ public class JwtAuthenticationController {
 		} catch (BadCredentialsException e) {
 			throw new Exception("INVALID_CREDENTIALS", e);
 		}
+	}
+
+	// uncompress the image bytes before returning it to the angular application
+		public static byte[] decompressBytes(byte[] data) {
+			Inflater inflater = new Inflater();
+			inflater.setInput(data);
+			ByteArrayOutputStream outputStream = new ByteArrayOutputStream(data.length);
+			byte[] buffer = new byte[10000];
+			try {
+				while (!inflater.finished()) {
+					int count = inflater.inflate(buffer);
+					outputStream.write(buffer, 0, count);
+				}
+				outputStream.close();
+			} catch (IOException ioe) {
+			} catch (DataFormatException e) {
+			}
+			return outputStream.toByteArray();
+		}
+
+	// compress the image bytes before storing it in the database
+	public static byte[] compressBytes(byte[] data) {
+		Deflater deflater = new Deflater();
+		deflater.setInput(data);
+		deflater.finish();
+
+		ByteArrayOutputStream outputStream = new ByteArrayOutputStream(data.length);
+		byte[] buffer = new byte[10000];
+		while (!deflater.finished()) {
+			int count = deflater.deflate(buffer);
+			outputStream.write(buffer, 0, count);
+		}
+		try {
+			outputStream.close();
+		} catch (IOException e) {
+		}
+		System.out.println("Compressed Image Byte Size - " + outputStream.toByteArray().length);
+
+		return outputStream.toByteArray();
 	}
 }

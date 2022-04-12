@@ -1,9 +1,12 @@
 package com.viram.dev.dto;
 
+import java.util.Date;
+
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.PrePersist;
 import javax.persistence.Table;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -35,5 +38,12 @@ public class InitiatePaymentDTO {
 	private String notifyUrl;
 	private String stage;
 	private String tokenData;
+	
+	private Date created;
+	
+	@PrePersist
+	protected void onCreate() {
+		created = new Date();
+	}
 	
 }

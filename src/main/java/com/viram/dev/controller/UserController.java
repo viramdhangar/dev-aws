@@ -1,7 +1,11 @@
 package com.viram.dev.controller;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
+import java.util.zip.DataFormatException;
+import java.util.zip.Inflater;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -47,8 +51,15 @@ public class UserController {
 	@GetMapping("/userByUsername/{username}")
 	public DAOUser userByUsername(@PathVariable String username) {
 		DAOUser user = userRepository.findByUsername(username);
-		List<Authorities> auth =  authoritiesRepository.findByUserId(user.getId());
-		user.setAuthorities(auth);
+		if(user != null) {
+			if(user.getPicByte() != null) {
+				String decodedString = new String(decompressBytes(user.getPicByte()));
+				user.setDecodedBase64(decodedString);
+				user.setPicByte(null);
+			}
+			List<Authorities> auth =  authoritiesRepository.findByUserId(user.getId());
+			user.setAuthorities(auth);
+		}
 		return user;
 	}
 	
@@ -71,4 +82,23 @@ public class UserController {
 		}
 		
 	}
+
+	// uncompress the image bytes before returning it to the angular application
+		public static byte[] decompressBytes(byte[] data) {
+			Inflater inflater = new Inflater();
+			inflater.setInput(data);
+			ByteArrayOutputStream outputStream = new ByteArrayOutputStream(data.length);
+			byte[] buffer = new byte[10000];
+			try {
+				while (!inflater.finished()) {
+					int count = inflater.inflate(buffer);
+					outputStream.write(buffer, 0, count);
+				}
+				outputStream.close();
+			} catch (IOException ioe) {
+			} catch (DataFormatException e) {
+			}
+			return outputStream.toByteArray();
+		}
+		
 }
